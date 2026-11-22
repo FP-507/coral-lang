@@ -37,6 +37,7 @@
     }
     button.run { background: var(--coral); border-color: var(--coral); color: #1a0d08; font-weight: 700; }
     button.run:disabled { opacity: .5; cursor: progress; }
+    button:disabled { cursor: progress; }
     button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; }
     .grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 12px; }
     .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; min-height: 460px; }
@@ -45,7 +46,7 @@
     .lineas { padding: 14px 10px 14px 14px; color: var(--muted); text-align: right; user-select: none; background: var(--panel-2); white-space: pre; }
     textarea { resize: none; border: 0; background: transparent; color: var(--ink); font: inherit; padding: 14px; width: 100%; min-height: 420px; tab-size: 2; white-space: pre; overflow: auto; }
     pre#salida { margin: 0; padding: 14px; flex: 1; white-space: pre-wrap; overflow: auto; }
-    .ok { color: var(--ink); } .err { color: var(--err); } .info { color: var(--muted); }
+    .ok { color: var(--ink); } .err { color: var(--err); } .info { color: var(--muted); } .pass { color: var(--sea); }
     .ref { margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
     .ref div { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
     .ref b { color: var(--sea); font-weight: 500; }
@@ -60,11 +61,12 @@
     <header>
       <div>
         <h1><span>Coral</span> playground</h1>
-        <p class="tag">Un lenguaje de programación con palabras clave en español: lexer, parser e intérprete escritos desde cero en Python, ejecutándose aquí con WebAssembly.</p>
+        <p class="tag">Un lenguaje de programación en español con clases, errores que enseñan, tuberías y pruebas integradas. Lexer, parser e intérprete escritos desde cero en Python, ejecutándose aquí con WebAssembly.</p>
       </div>
       <div class="bar">
         <label for="ejemplo" class="info">Ejemplo</label>
         <select id="ejemplo"></select>
+        <button id="pruebas" disabled title="Ejecuta los bloques prueba del programa">✓ Pruebas</button>
         <button class="run" id="ejecutar" disabled>Cargando…</button>
       </div>
     </header>
@@ -84,11 +86,12 @@
     </div>
 
     <div class="ref" aria-label="Referencia rápida">
-      <div><b>Variables</b><br><code>var nombre = "Ana"</code><br><code>x += 1</code></div>
-      <div><b>Condiciones</b><br><code>si x > 0 { … } sino si … { … } sino { … }</code></div>
-      <div><b>Ciclos</b><br><code>para i en rango(5) { … }</code><br><code>mientras cond { rompe }</code></div>
-      <div><b>Funciones</b><br><code>funcion suma(a, b) { retorna a + b }</code><br><code>funcion (x) => x * 2</code></div>
-      <div><b>Colecciones</b><br><code>[1, 2].mapea(f)</code> · <code>{clave: valor}</code><br><code>lista.agrega(x)</code> · <code>d.claves()</code></div>
+      <div><b>Variables</b><br><code>var nombre = "Ana"</code> · <code>const PI = 3.14</code><br><code>"Hola {nombre}"</code></div>
+      <div><b>Condiciones</b><br><code>si x > 0 { … } sino { … }</code><br><code>segun x { caso 1, 2 { … } otro { … } }</code></div>
+      <div><b>Ciclos</b><br><code>para i en 1..10 { … }</code><br><code>mientras cond { rompe }</code></div>
+      <div><b>Funciones</b><br><code>funcion suma(a, b) { retorna a + b }</code><br><code>datos |> filtra |> ordena</code></div>
+      <div><b>Clases</b><br><code>clase Gato hereda Animal { … }</code><br><code>yo.nombre</code> · <code>padre.iniciar()</code> · <code>x es Gato</code></div>
+      <div><b>Errores y pruebas</b><br><code>intenta { … } captura e { … }</code><br><code>prueba "suma" { afirma 1 + 1 == 2 }</code></div>
     </div>
 
     <footer>Proyecto de <a href="https://fp-507.github.io/Portafolio/">Fidel Pizart</a> · <a href="https://github.com/FP-507/coral-lang">Código fuente en GitHub</a> · Ejecutado con Pyodide</footer>

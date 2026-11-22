@@ -1,0 +1,5 @@
+# importa ejecuta otro archivo (una sola vez) y deja disponibles sus definiciones.
+importa "util.coral"
+
+imprimir("Área de radio 2:", redondear(area_circulo(2), 2))
+imprimir("Promedio:", promedio([7, 8, 9.5]))

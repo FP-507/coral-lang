@@ -1,0 +1,18 @@
+# Módulo de utilidades: lo usa uso_importa.coral con  importa "util.coral"
+
+const PI = 3.14159
+
+funcion area_circulo(r) => PI * r ** 2
+
+funcion promedio(lista) {
+    si largo(lista) == 0 { lanza "promedio() de una lista vacía" }
+    retorna suma(lista) / largo(lista)
+}
+
+prueba "promedio de varios números" {
+    afirma promedio([2, 4, 6]) == 4
+}
+
+prueba "área de un círculo de radio 1" {
+    afirma area_circulo(1) == PI
+}

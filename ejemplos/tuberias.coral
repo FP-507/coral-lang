@@ -1,0 +1,41 @@
+# Tuberías |>, rangos .. , plantillas y segun.
+# x |> f(a)  es lo mismo que  f(x, a): los datos fluyen de izquierda a derecha.
+
+funcion pares(lista) => lista.filtra(funcion (n) => n % 2 == 0)
+funcion al_cuadrado(lista) => lista.mapea(funcion (n) => n * n)
+funcion sumar(lista) => lista.reduce(funcion (a, b) => a + b, 0)
+
+var total = 1..10 |> pares |> al_cuadrado |> sumar
+imprimir("Suma de los cuadrados pares del 1 al 10: {total}")
+
+# Sin tuberías habría que leerlo de adentro hacia afuera:
+imprimir(sumar(al_cuadrado(pares(1..10))))
+
+const PRODUCTOS = [
+    {nombre: "café", precio: 4.5, stock: 12},
+    {nombre: "té", precio: 3, stock: 0},
+    {nombre: "cacao", precio: 6, stock: 5},
+]
+
+var disponibles = PRODUCTOS
+    |> funcion (ps) => ps.filtra(funcion (p) => p.stock > 0)
+    |> funcion (ps) => ps.ordena(funcion (p) => -p.precio)
+
+para p en disponibles {
+    imprimir("- {p.nombre.mayusculas()}: ${p.precio} ({p.stock} unidades)")
+}
+
+funcion clasificar(nota) {
+    segun nota {
+        caso 10 { retorna "perfecto" }
+        caso 7..9 { retorna "aprobado" }
+        caso 0, 1, 2, 3 { retorna "muy bajo" }
+        otro { retorna "reprobado" }
+    }
+}
+
+para nota en [10, 8, 5, 2] {
+    imprimir("Nota {nota}: {clasificar(nota)}")
+}
+
+imprimir("Cuenta regresiva:", 5..1)

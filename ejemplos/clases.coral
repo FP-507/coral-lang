@@ -1,0 +1,62 @@
+# Clases, herencia, métodos y 'padre'.
+# Ejecuta:  python -m coral ejemplos/clases.coral
+
+clase Cuenta {
+    funcion iniciar(titular, saldo) {
+        yo.titular = titular
+        yo.saldo = saldo
+        yo.movimientos = []
+    }
+
+    funcion deposita(monto) {
+        si monto <= 0 { lanza "El depósito debe ser positivo" }
+        yo.saldo += monto
+        yo.movimientos.agrega(monto)
+        retorna yo                      # devolver 'yo' permite encadenar
+    }
+
+    funcion retira(monto) {
+        si monto > yo.saldo { lanza "Saldo insuficiente: hay {yo.saldo} y se pidieron {monto}" }
+        yo.saldo -= monto
+        yo.movimientos.agrega(-monto)
+        retorna yo
+    }
+
+    # como_texto() decide cómo se imprime el objeto
+    funcion como_texto() {
+        retorna "{yo.titular}: ${yo.saldo}"
+    }
+}
+
+clase CuentaAhorro hereda Cuenta {
+    funcion iniciar(titular, saldo, tasa) {
+        padre.iniciar(titular, saldo)
+        yo.tasa = tasa
+    }
+
+    funcion aplica_interes() {
+        retorna yo.deposita(redondear(yo.saldo * yo.tasa, 2))
+    }
+
+    funcion como_texto() {
+        retorna padre.como_texto() + " (ahorro al {yo.tasa * 100}%)"
+    }
+}
+
+var ana = Cuenta("Ana", 100)
+ana.deposita(50).retira(30)
+imprimir(ana)
+imprimir("Movimientos:", ana.movimientos)
+
+var luis = CuentaAhorro("Luis", 1000, 0.05)
+luis.aplica_interes()
+imprimir(luis)
+
+imprimir(luis es Cuenta, luis es CuentaAhorro, ana es CuentaAhorro)
+imprimir(tipo(luis), luis es "Cuenta", 5 es "numero")
+
+intenta {
+    ana.retira(1000)
+} captura error {
+    imprimir("No se pudo:", error)
+}

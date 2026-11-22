@@ -1,4 +1,12 @@
-"""Nodos del árbol de sintaxis abstracta (AST)."""
+"""Nodos del árbol de sintaxis abstracta (AST).
+
+El parser convierte los tokens en estos nodos y el intérprete los recorre.
+Cada nodo guarda ``linea`` y ``columna`` (sin participar en la comparación de
+igualdad) para que los errores de ejecución señalen la posición exacta.
+
+Convención: las *expresiones* producen un valor; las *sentencias* se ejecutan
+por su efecto (declarar, repetir, retornar...).
+"""
 
 from dataclasses import dataclass, field
 
@@ -9,10 +17,19 @@ class Nodo:
     columna: int = field(default=0, kw_only=True, compare=False, repr=False)
 
 
-# ---------- expresiones ----------
+# =====================================================================
+# Expresiones
+# =====================================================================
 @dataclass
 class Literal(Nodo):
+    """Número, texto, verdadero, falso o nulo."""
     valor: object
+
+
+@dataclass
+class Plantilla(Nodo):
+    """Texto con interpolación: "Hola {nombre}". Partes: str literal o Nodo."""
+    partes: list
 
 
 @dataclass
@@ -22,12 +39,13 @@ class Variable(Nodo):
 
 @dataclass
 class Unaria(Nodo):
-    op: str
+    op: str          # "-" | "no"
     expr: Nodo
 
 
 @dataclass
 class Binaria(Nodo):
+    """Operación aritmética, de comparación, de rango (..) o de tipo (es)."""
     izq: Nodo
     op: str
     der: Nodo
@@ -35,14 +53,15 @@ class Binaria(Nodo):
 
 @dataclass
 class Logica(Nodo):
+    """'y' / 'o' con evaluación en cortocircuito."""
     izq: Nodo
-    op: str          # "y" | "o"
+    op: str
     der: Nodo
 
 
 @dataclass
 class Asignacion(Nodo):
-    objetivo: Nodo   # Variable o Indice
+    objetivo: Nodo   # Variable, Indice o Atributo
     op: str          # "=", "+=", "-="
     valor: Nodo
 
@@ -66,6 +85,12 @@ class Atributo(Nodo):
 
 
 @dataclass
+class Padre(Nodo):
+    """padre.metodo: método de la clase padre, ligado a la instancia actual."""
+    nombre: str
+
+
+@dataclass
 class Lista(Nodo):
     elementos: list[Nodo]
 
@@ -82,11 +107,15 @@ class Funcion(Nodo):
     cuerpo: list[Nodo]
 
 
-# ---------- sentencias ----------
+# =====================================================================
+# Sentencias
+# =====================================================================
 @dataclass
 class Declaracion(Nodo):
+    """var nombre = valor  |  const NOMBRE = valor"""
     nombre: str
     valor: Nodo
+    constante: bool = False
 
 
 @dataclass
@@ -127,3 +156,50 @@ class Rompe(Nodo):
 @dataclass
 class Continua(Nodo):
     pass
+
+
+@dataclass
+class Clase(Nodo):
+    """clase Nombre [hereda Padre] { funcion metodo(...) {...} ... }"""
+    nombre: str
+    padre: Nodo | None
+    metodos: list[Funcion]
+
+
+@dataclass
+class Intenta(Nodo):
+    """intenta { ... } captura [nombre] { ... }"""
+    cuerpo: list[Nodo]
+    variable: str | None
+    manejo: list[Nodo]
+
+
+@dataclass
+class Lanza(Nodo):
+    valor: Nodo
+
+
+@dataclass
+class Segun(Nodo):
+    """segun valor { caso a, b { ... } ... otro { ... } }"""
+    valor: Nodo
+    casos: list[tuple[list[Nodo], list[Nodo]]]
+    otro: list[Nodo] | None
+
+
+@dataclass
+class Prueba(Nodo):
+    """prueba "nombre" { ... }  (solo se ejecuta con --pruebas)"""
+    nombre: str
+    cuerpo: list[Nodo]
+
+
+@dataclass
+class Afirma(Nodo):
+    condicion: Nodo
+    mensaje: Nodo | None
+
+
+@dataclass
+class Importa(Nodo):
+    ruta: str

@@ -1,0 +1,37 @@
+# Manejo de errores: intenta / captura / lanza.
+
+funcion dividir(a, b) {
+    si b == 0 { lanza "No se puede dividir {a} entre cero" }
+    retorna a / b
+}
+
+intenta {
+    imprimir(dividir(10, 2))
+    imprimir(dividir(1, 0))
+    imprimir("esto no se imprime")
+} captura e {
+    imprimir("Capturado:", e)
+}
+
+# Los errores del propio lenguaje también se capturan (como texto).
+intenta {
+    var lista = [1, 2, 3]
+    imprimir(lista[10])
+} captura e {
+    imprimir("Error del lenguaje:", e)
+}
+
+# Se puede lanzar cualquier valor, por ejemplo un diccionario con detalles.
+funcion validar_edad(edad) {
+    si tipo(edad) != "numero" { lanza {codigo: 400, mensaje: "La edad debe ser un número"} }
+    si edad < 0 { lanza {codigo: 422, mensaje: "La edad no puede ser negativa"} }
+    retorna edad
+}
+
+para valor en [25, -3, "veinte"] {
+    intenta {
+        imprimir("Edad válida:", validar_edad(valor))
+    } captura problema {
+        imprimir("Error {problema.codigo}: {problema.mensaje}")
+    }
+}

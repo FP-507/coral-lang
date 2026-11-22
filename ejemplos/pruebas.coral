@@ -1,0 +1,31 @@
+# Pruebas integradas en el lenguaje.
+# Ejecuta:  python -m coral --pruebas ejemplos/pruebas.coral
+# Los bloques 'prueba' no corren al ejecutar el archivo normalmente.
+
+funcion factorial(n) {
+    si n <= 1 { retorna 1 }
+    retorna n * factorial(n - 1)
+}
+
+funcion es_palindromo(texto) {
+    var limpio = texto.minusculas().reemplaza(" ", "")
+    retorna limpio == limpio.divide("").invierte().une("")
+}
+
+prueba "factorial de números pequeños" {
+    afirma factorial(0) == 1
+    afirma factorial(5) == 120
+}
+
+prueba "palíndromos" {
+    afirma es_palindromo("Anita lava la tina")
+    afirma no es_palindromo("coral"), "'coral' no es palíndromo"
+}
+
+prueba "los errores se pueden comprobar" {
+    var mensaje = nulo
+    intenta { lanza "falló" } captura e { mensaje = e }
+    afirma mensaje == "falló"
+}
+
+imprimir("factorial(10) =", factorial(10))

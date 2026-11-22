@@ -1,7 +1,7 @@
 [project]
 name = "coral-lang"
-version = "1.0.0"
-description = "Un lenguaje de programación pequeño con palabras clave en español"
+version = "2.0.0"
+description = "Un lenguaje de programación en español con clases, errores que enseñan, tuberías y pruebas integradas"
 requires-python = ">=3.10"
 dependencies = []
 

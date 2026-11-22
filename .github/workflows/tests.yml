@@ -17,3 +17,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install pytest
       - run: pytest -v
+      - name: Pruebas escritas en Coral
+        run: |
+          for f in ejemplos/*.coral; do python -m coral --pruebas "$f"; done
