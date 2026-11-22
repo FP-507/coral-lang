@@ -104,7 +104,11 @@ Cuidado: en Python `bool` es subclase de `int`. Por eso existen `es_numero()` e 
 - Llamar a una clase (`instanciar`) crea una `InstanciaCoral` y llama a `iniciar` si existe en la cadena de herencia.
 - `atributo()` resuelve `obj.nombre` en este orden: campo de la instancia, método de la clase (subiendo por `padre`), clave de diccionario, método nativo del tipo.
 - `MetodoLigado` guarda la clase **donde está definido** el método. Al llamarlo se agregan `yo` y `__clase__` al entorno local; `padre.x` usa `__clase__.padre`, lo que hace correcto el `padre` en herencias de varios niveles.
-- `mostrar()` usa `como_texto()` si la clase lo define.
+- `mostrar()` usa `como_texto()` si la clase lo define y oculta los campos privados.
+- **Miembros de clase:** `ClaseCoral` guarda además `estaticos`, `constantes` (evaluadas al declarar la clase) y `abstractos` (solo nombres). `buscar_de_clase()` los busca subiendo por la herencia; `Clase.X` y `yo.X` los encuentran.
+- **Abstractas:** `instanciar` llama a `abstractos_pendientes()` y no crea el objeto si queda alguno. `buscar_metodo` se detiene si encuentra el nombre declarado como abstracto antes que una implementación.
+- **Privados:** un nombre que empieza con `_` solo se puede leer o asignar si `acceso_interno()` es verdadero: el objeto es `yo`, o el código corre dentro de un método (`__clase__` en el entorno) de la clase del objeto o de una superclase. La comprobación se hace solo si el miembro existe, para que los errores de "no existe" sigan dando pistas.
+- **Operadores:** `operar()` delega en `operar_objeto()` si el operando izquierdo es una instancia (`OPERADORES_OBJETO` mapea `+` a `mas`, etc.). `==` usa `igual_a` o la identidad; `<`, `<=`, `>`, `>=` se derivan de `menor_que` e `igual_a`. `_ordenar` y `minimo`/`maximo` usan ese mismo orden para listas de objetos. `largo(obj)` llama a `obj.largo()` y `para x en obj` a `obj.elementos()`.
 
 ### Pruebas
 
@@ -150,7 +154,7 @@ Siempre: un test en `tests/test_coral.py` y, si es visible para quien programa, 
 ## Pendientes e ideas
 
 - Desestructuración (`var [a, b] = lista`) y parámetros con valor por defecto.
-- Métodos estáticos y campos de clase.
+- Interfaces (`implementa`) para declarar contratos sin herencia.
 - Un `importa` con alias (`importa "util.coral" como u`) para no ensuciar el ámbito global.
 - Resaltado de sintaxis en el playground y una extensión para VS Code.
 - Compilar a bytecode en vez de recorrer el árbol, si alguna vez el rendimiento importa.

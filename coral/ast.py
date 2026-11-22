@@ -160,10 +160,17 @@ class Continua(Nodo):
 
 @dataclass
 class Clase(Nodo):
-    """clase Nombre [hereda Padre] { funcion metodo(...) {...} ... }"""
+    """clase Nombre [hereda Padre] { ... }
+
+    El cuerpo admite métodos de instancia, ``estatico funcion``, ``abstracta funcion``
+    (sin cuerpo) y ``const NOMBRE = valor``.
+    """
     nombre: str
     padre: Nodo | None
     metodos: list[Funcion]
+    estaticos: list[Funcion] = field(default_factory=list)
+    constantes: list[tuple[str, Nodo]] = field(default_factory=list)
+    abstractos: list[str] = field(default_factory=list)
 
 
 @dataclass

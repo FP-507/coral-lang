@@ -333,6 +333,98 @@ def test_retorna_y_rompe_fuera_de_lugar():
 
 
 # =====================================================================
+# Programación orientada a objetos
+# =====================================================================
+FIGURAS = """
+clase Figura {
+    abstracta funcion area()
+    funcion menor_que(f) => yo.area() < f.area()
+}
+clase Cuadrado hereda Figura {
+    const LADOS = 4
+    funcion iniciar(l) { yo.l = l }
+    funcion area() => yo.l * yo.l
+    estatico funcion unitario() => Cuadrado(1)
+}
+"""
+
+
+def test_clase_abstracta_no_se_instancia():
+    with pytest.raises(ErrorEjecucion, match="es abstracta y le falta implementar 'area'"):
+        salida(FIGURAS + "Figura()")
+    with pytest.raises(ErrorEjecucion, match="le falta implementar 'area'"):
+        salida(FIGURAS + "clase Mala hereda Figura { funcion otra_cosa() => 1 }\nMala()")
+    assert salida(FIGURAS + "imprimir(Cuadrado(3).area(), Cuadrado(3) es Figura)") == ["9 verdadero"]
+
+
+def test_metodos_estaticos_y_constantes_de_clase():
+    assert salida(FIGURAS + "imprimir(Cuadrado.unitario().area(), Cuadrado.LADOS, Cuadrado(2).LADOS)") == ["1 4 4"]
+    with pytest.raises(ErrorEjecucion, match="es un método de instancia"):
+        salida(FIGURAS + "Cuadrado.area()")
+    with pytest.raises(ErrorEjecucion, match="¿Quisiste decir 'LADOS'"):
+        salida(FIGURAS + "Cuadrado.LADO")
+    with pytest.raises(ErrorEjecucion, match="no se pueden reasignar"):
+        salida(FIGURAS + "Cuadrado.LADOS = 5")
+
+
+def test_encapsulamiento_con_guion_bajo():
+    codigo = """
+    clase Caja {
+        funcion iniciar(v) { yo._v = v }
+        funcion valor() => yo._v
+        funcion igual_a(c) => yo._v == c._v
+    }
+    imprimir(Caja(3).valor(), Caja(3) == Caja(3), Caja(3) != Caja(4), Caja(1))
+    """
+    assert salida(codigo) == ["3 verdadero verdadero <Caja>"]
+    with pytest.raises(ErrorEjecucion, match="'_v' es privado de Caja"):
+        salida("clase Caja { funcion iniciar() { yo._v = 1 } }\nimprimir(Caja()._v)")
+    with pytest.raises(ErrorEjecucion, match="es privado"):
+        salida("clase Caja { funcion iniciar() { yo._v = 1 } }\nvar c = Caja()\nc._v = 2")
+
+
+def test_sobrecarga_de_operadores_y_orden():
+    codigo = """
+    clase Dinero {
+        funcion iniciar(c) { yo.c = c }
+        funcion mas(d) => Dinero(yo.c + d.c)
+        funcion por(k) => Dinero(yo.c * k)
+        funcion igual_a(d) => d es Dinero y yo.c == d.c
+        funcion menor_que(d) => yo.c < d.c
+        funcion como_texto() => "${yo.c}"
+    }
+    var a = Dinero(5)
+    imprimir(a + Dinero(2), a * 3, a == Dinero(5), a == 5, a < Dinero(9), a >= Dinero(9), a <= Dinero(5))
+    imprimir(ordenar([Dinero(3), Dinero(1), Dinero(2)]), maximo([Dinero(3), Dinero(8)]))
+    """
+    assert salida(codigo) == ["$7 $15 verdadero falso verdadero falso verdadero", "[$1, $2, $3] $8"]
+    with pytest.raises(ErrorEjecucion, match="define el método menos"):
+        salida("clase X { }\nX() - X()")
+
+
+def test_objetos_recorribles_y_largo():
+    codigo = """
+    clase Rango3 {
+        funcion elementos() => [1, 2, 3]
+        funcion largo() => 3
+    }
+    var t = 0
+    para n en Rango3() { t += n }
+    imprimir(t, largo(Rango3()))
+    """
+    assert salida(codigo) == ["6 3"]
+    with pytest.raises(ErrorEjecucion, match="debe definir elementos"):
+        salida("clase X { }\npara i en X() { }")
+
+
+def test_pistas_de_poo_de_otros_lenguajes():
+    with pytest.raises(ErrorEjecucion, match="'como_texto' en lugar de '__str__'"):
+        salida("clase X { }\nX().__str__()")
+    with pytest.raises(ErrorSintaxis, match="solo van métodos"):
+        parsear("clase X { var a = 1 }")
+
+
+# =====================================================================
 # Ejemplos: todos corren y sus pruebas pasan
 # =====================================================================
 @pytest.mark.parametrize("archivo", sorted(EJEMPLOS.glob("*.coral")), ids=lambda p: p.name)

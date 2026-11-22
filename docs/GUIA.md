@@ -11,7 +11,7 @@ Referencia completa de Coral 2. Todos los fragmentos se pueden pegar en el [play
 - [Ciclos y rangos](#ciclos-y-rangos)
 - [Funciones](#funciones)
 - [Tuberías](#tuberías)
-- [Clases](#clases)
+- [Clases](#clases) · [POO completa](#programación-orientada-a-objetos-completa)
 - [Errores](#errores)
 - [Pruebas](#pruebas)
 - [Módulos](#módulos)
@@ -222,6 +222,75 @@ imprimir(p)                           # <Toby>
 - Los métodos se pueden pasar como valores: `botones.cada(yo.manejar)` mantiene su `yo`.
 - `x es "numero"` también funciona con los tipos básicos.
 
+### Programación orientada a objetos completa
+
+Coral cubre los cuatro pilares de la POO (abstracción, encapsulamiento, herencia y polimorfismo), además de miembros de clase, sobrecarga de operadores y objetos recorribles. El ejemplo completo está en [`ejemplos/poo.coral`](../ejemplos/poo.coral).
+
+**Clases abstractas.** Un método `abstracta funcion` no tiene cuerpo. Una clase con métodos abstractos sin implementar no se puede instanciar.
+
+```coral
+clase Figura {
+    abstracta funcion area()
+    funcion describe() => "área {yo.area()}"
+}
+clase Cuadrado hereda Figura {
+    funcion iniciar(lado) { yo.lado = lado }
+    funcion area() => yo.lado ** 2
+}
+imprimir(Cuadrado(3).describe())   # área 9
+# Figura()  da error: es abstracta y le falta implementar 'area'
+```
+
+**Encapsulamiento.** Los campos y métodos que empiezan con `_` son privados: solo se usan dentro de los métodos de la clase (con `yo._x`, o con `otra._x` si `otra` es de la misma clase). Tampoco aparecen al imprimir el objeto.
+
+```coral
+clase Cuenta {
+    funcion iniciar() { yo._saldo = 0 }
+    funcion deposita(m) { yo._validar(m); yo._saldo += m }
+    funcion saldo() => yo._saldo
+    funcion _validar(m) { si m <= 0 { lanza "monto inválido" } }
+}
+var c = Cuenta()
+c.deposita(50)
+imprimir(c.saldo())      # 50
+# c._saldo  da error: '_saldo' es privado de Cuenta
+```
+
+**Miembros de clase.** `const` dentro de la clase define una constante y `estatico funcion` un método que se llama sobre la clase. Ambos se heredan y también se leen desde una instancia.
+
+```coral
+clase Temperatura {
+    const CERO_ABSOLUTO = -273.15
+    funcion iniciar(c) { yo.c = c }
+    estatico funcion desde_fahrenheit(f) => Temperatura((f - 32) * 5 / 9)
+}
+imprimir(Temperatura.CERO_ABSOLUTO, Temperatura.desde_fahrenheit(212).c)   # -273.15 100
+```
+
+**Sobrecarga de operadores.** Si el objeto de la izquierda define el método, el operador lo usa:
+
+| Operador | Método | Operador | Método |
+|---|---|---|---|
+| `a + b` | `mas(b)` | `a == b`, `a != b` | `igual_a(b)` (si no existe: misma instancia) |
+| `a - b` | `menos(b)` | `a < b`, `<=`, `>`, `>=` | `menor_que(b)` (con `igual_a`) |
+| `a * b` | `por(b)` | `largo(a)` | `largo()` |
+| `a / b` | `entre(b)` | `para x en a` | `elementos()` (devuelve una lista) |
+| `a % b` | `modulo(b)` | `imprimir(a)`, `"{a}"` | `como_texto()` |
+| `a ** b` | `potencia(b)` | `ordenar`, `minimo`, `maximo` | `menor_que(b)` |
+
+```coral
+clase Vector {
+    funcion iniciar(x, z) { yo.x = x; yo.z = z }
+    funcion mas(v) => Vector(yo.x + v.x, yo.z + v.z)
+    funcion igual_a(v) => v es Vector y yo.x == v.x y yo.z == v.z
+    funcion como_texto() => "({yo.x}, {yo.z})"
+}
+imprimir(Vector(1, 2) + Vector(3, 4))           # (4, 6)
+imprimir(Vector(1, 2) == Vector(1, 2))          # verdadero
+```
+
+Ojo: `otro`, `y`, `o`, `en` y `es` son palabras reservadas; no sirven como nombre de parámetro.
+
 ## Errores
 
 ```coral
@@ -316,9 +385,9 @@ imprimir(area(2))
 
 ## Palabras reservadas
 
-`var const funcion retorna si sino mientras para en verdadero falso nulo y o no es rompe continua clase hereda yo padre intenta captura lanza segun caso otro prueba afirma importa`
+`var const funcion retorna si sino mientras para en verdadero falso nulo y o no es rompe continua clase hereda yo padre estatico abstracta intenta captura lanza segun caso otro prueba afirma importa`
 
-No se pueden usar como nombres. Cuidado con `y`, `o` y `en`: `funcion punto(x, y)` da error; usa otro nombre.
+No se pueden usar como nombres. Cuidado con `y`, `o`, `en` y `otro`: `funcion punto(x, y)` da error; usa otro nombre.
 
 ## Si vienes de Python o JavaScript
 
@@ -333,6 +402,10 @@ No se pueden usar como nombres. Cuidado con `y`, `o` y `en`: `funcion punto(x, y
 | `class A(B)` / `class A extends B` | `clase A hereda B` |
 | `self` / `this`, `super()` | `yo`, `padre` |
 | `__init__` / `constructor` | `iniciar` |
+| `@staticmethod` / `static` | `estatico funcion` |
+| `ABC` + `@abstractmethod` / `abstract` | `abstracta funcion` |
+| `self._x` / `#x` / `private` | `yo._x` (privado de verdad) |
+| `__add__`, `__eq__`, `__lt__`, `__len__`, `__iter__` | `mas`, `igual_a`, `menor_que`, `largo`, `elementos` |
 | `__str__` / `toString` | `como_texto` |
 | `try` / `except` / `raise` | `intenta` / `captura` / `lanza` |
 | `match` / `switch` | `segun` / `caso` / `otro` |

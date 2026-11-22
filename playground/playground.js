@@ -21,6 +21,7 @@ imprimir("Suma: {suma(cuadrados)}")
 funcion pares(lista) => lista.filtra(funcion (n) => n % 2 == 0)
 imprimir(1..20 |> pares |> largo, "números pares entre 1 y 20")
 `,
+  "POO completa": null,
   "Clases y herencia": null,
   "Errores: intenta / captura": null,
   "Tuberías, rangos y segun": null,
@@ -44,6 +45,7 @@ print("Total:", total)
 `,
 };
 const ARCHIVOS = {
+  "POO completa": "../ejemplos/poo.coral",
   "Clases y herencia": "../ejemplos/clases.coral",
   "Errores: intenta / captura": "../ejemplos/errores.coral",
   "Tuberías, rangos y segun": "../ejemplos/tuberias.coral",

@@ -44,6 +44,10 @@ sys.setrecursionlimit(max(sys.getrecursionlimit(), LIMITE_RECURSION * 15 + 1000)
 
 COMPARACIONES = ("==", "!=", "<", "<=", ">", ">=")
 
+# Sobrecarga de operadores: si el operando izquierdo es un objeto con este método,
+# 'a + b' se convierte en 'a.mas(b)'. Las comparaciones se derivan de igual_a y menor_que.
+OPERADORES_OBJETO = {"+": "mas", "-": "menos", "*": "por", "/": "entre", "%": "modulo", "**": "potencia"}
+
 
 # =====================================================================
 # Señales internas de control de flujo (nunca llegan al usuario)
@@ -155,21 +159,53 @@ class ClaseCoral:
     nombre: str
     padre: ClaseCoral | None
     metodos: dict[str, FuncionCoral]
+    estaticos: dict[str, FuncionCoral] = field(default_factory=dict)
+    constantes: dict[str, object] = field(default_factory=dict)
+    abstractos: set[str] = field(default_factory=set)
+
+    def cadena(self):
+        """La clase y todos sus ancestros, desde ella hacia arriba."""
+        clase = self
+        while clase is not None:
+            yield clase
+            clase = clase.padre
 
     def buscar_metodo(self, nombre) -> tuple[FuncionCoral, ClaseCoral] | None:
         """Busca el método subiendo por la herencia; devuelve (función, clase que lo define)."""
-        clase = self
-        while clase is not None:
+        for clase in self.cadena():
             if nombre in clase.metodos:
                 return clase.metodos[nombre], clase
-            clase = clase.padre
+            if nombre in clase.abstractos:        # declarado abstracto aquí y no implementado abajo
+                return None
         return None
 
+    def buscar_de_clase(self, nombre):
+        """Constante o método estático, heredables. Devuelve (encontrado, valor)."""
+        for clase in self.cadena():
+            if nombre in clase.constantes:
+                return True, clase.constantes[nombre]
+            if nombre in clase.estaticos:
+                return True, clase.estaticos[nombre]
+        return False, None
+
+    def abstractos_pendientes(self) -> list[str]:
+        """Métodos abstractos de la cadena que ninguna clase más abajo implementa."""
+        pendientes = []
+        for clase in self.cadena():
+            pendientes += [n for n in sorted(clase.abstractos) if n not in pendientes and self.buscar_metodo(n) is None]
+        return pendientes
+
     def nombres_metodos(self) -> set[str]:
-        nombres, clase = set(), self
-        while clase is not None:
+        nombres = set()
+        for clase in self.cadena():
             nombres.update(clase.metodos)
-            clase = clase.padre
+        return nombres
+
+    def nombres_de_clase(self) -> set[str]:
+        nombres = set()
+        for clase in self.cadena():
+            nombres.update(clase.constantes)
+            nombres.update(clase.estaticos)
         return nombres
 
     def hereda_de(self, otra: ClaseCoral) -> bool:
@@ -365,7 +401,8 @@ class Interprete:
         if encontrado:
             fn, clase = encontrado
             return self.mostrar(self.llamar(MetodoLigado(fn, inst, clase), [], fn.nodo))
-        campos = " ".join(f"{k}={_en_coleccion(v, self._texto_instancia)}" for k, v in inst.campos.items())
+        campos = " ".join(f"{k}={_en_coleccion(v, self._texto_instancia)}" for k, v in inst.campos.items()
+                          if not k.startswith("_"))           # los privados no se muestran
         return f"<{inst.clase.nombre}{' ' + campos if campos else ''}>"
 
     def bloque(self, sentencias, entorno):
@@ -403,13 +440,17 @@ class Interprete:
                 valores = a[0] if len(a) == 1 and isinstance(a[0], list) else list(a)
                 if not valores:
                     raise ValueError("la lista está vacía")
+                if any(isinstance(v, InstanciaCoral) for v in valores):
+                    # Objetos: se usa el mismo orden que ordenar() (método menor_que).
+                    orden = self._ordenar(valores, None, None)
+                    return orden[0] if fn is min else orden[-1]
                 return fn(valores)
             return calcular
 
         return [
             ("imprimir", lambda *a: self.salida(" ".join(self.mostrar(x) for x in a)), (0, 99)),
             ("entrada", entrada, (0, 1)),
-            ("largo", lambda v: len(v), (1, 1)),
+            ("largo", lambda v: self._metodo_especial(v, "largo") if isinstance(v, InstanciaCoral) else len(v), (1, 1)),
             ("rango", rango, (1, 3)),
             ("texto", lambda v: self.mostrar(v), (1, 1)),
             ("numero", numero, (1, 1)),
@@ -428,12 +469,33 @@ class Interprete:
         ]
 
     def _ordenar(self, lista, clave, nodo):
+        nodo = nodo or A.Literal(None)
+        valores = lista if clave is None else [self.llamar(clave, [x], nodo) for x in lista]
+        if any(isinstance(v, InstanciaCoral) for v in valores):
+            # Objetos: se ordenan con su método menor_que (vía operar).
+            interp = self
+
+            class _Clave:
+                def __init__(self, par):
+                    self.v = par[1]
+
+                def __lt__(self, otro):
+                    return verdadero(interp.operar("<", self.v, otro.v, nodo))
+
+            pares = sorted(zip(lista, valores), key=_Clave)
+            return [x for x, _ in pares]
         try:
-            if clave is None:
-                return sorted(lista)
-            return sorted(lista, key=lambda x: self.llamar(clave, [x], nodo))
+            pares = sorted(zip(lista, valores), key=lambda par: par[1])
+            return [x for x, _ in pares]
         except TypeError:
             raise ValueError("no se pueden ordenar valores de tipos distintos") from None
+
+    def _metodo_especial(self, inst: InstanciaCoral, nombre: str, *args, nodo=None):
+        """Llama a un método 'especial' (largo, elementos...) o explica que falta."""
+        encontrado = inst.clase.buscar_metodo(nombre)
+        if not encontrado:
+            raise ValueError(f"{inst.clase.nombre} no define el método '{nombre}()'")
+        return self.llamar(MetodoLigado(encontrado[0], inst, encontrado[1]), list(args), nodo or encontrado[0].nodo)
 
     # -----------------------------------------------------------------
     # Métodos de los tipos básicos: lista.metodo(), texto.metodo()...
@@ -515,17 +577,42 @@ class Interprete:
             }
         return {}
 
-    def atributo(self, obj, nombre: str, nodo):
-        """Resuelve obj.nombre: campo de instancia, método de clase, clave de diccionario o método nativo."""
+    @staticmethod
+    def verificar_privado(obj: InstanciaCoral, nombre: str, desde_yo: bool, nodo):
+        """Encapsulamiento: los nombres que empiezan con '_' solo se usan dentro de los métodos de la clase."""
+        if nombre.startswith("_") and not desde_yo:
+            raise ErrorEjecucion(f"'{nombre}' es privado de {obj.clase.nombre}: solo se puede usar dentro de sus "
+                                 f"métodos, como yo.{nombre}", nodo.linea, nodo.columna)
+
+    def atributo(self, obj, nombre: str, nodo, desde_yo: bool = False):
+        """Resuelve obj.nombre: campo de instancia, método de clase, miembro de clase,
+        clave de diccionario o método nativo."""
         if isinstance(obj, InstanciaCoral):
+            existe = nombre in obj.campos or obj.clase.buscar_metodo(nombre) or obj.clase.buscar_de_clase(nombre)[0]
+            if existe:
+                self.verificar_privado(obj, nombre, desde_yo, nodo)
             if nombre in obj.campos:
                 return obj.campos[nombre]
             encontrado = obj.clase.buscar_metodo(nombre)
             if encontrado:
                 return MetodoLigado(encontrado[0], obj, encontrado[1])
-            opciones = set(obj.campos) | obj.clase.nombres_metodos()
-            raise ErrorEjecucion(f"{obj.clase.nombre} no tiene el campo ni el método '{nombre}'.{sugerir(nombre, opciones)}",
+            hallado, valor = obj.clase.buscar_de_clase(nombre)      # yo.CONSTANTE o yo.metodo_estatico
+            if hallado:
+                return valor
+            pista = pista_palabra(nombre)
+            opciones = {n for n in set(obj.campos) | obj.clase.nombres_metodos() if desde_yo or not n.startswith("_")}
+            ayuda = f" {pista}" if pista else sugerir(nombre, opciones)
+            raise ErrorEjecucion(f"{obj.clase.nombre} no tiene el campo ni el método '{nombre}'.{ayuda}",
                                  nodo.linea, nodo.columna)
+        if isinstance(obj, ClaseCoral):
+            hallado, valor = obj.buscar_de_clase(nombre)
+            if hallado:
+                return valor
+            if obj.buscar_metodo(nombre):
+                raise ErrorEjecucion(f"'{nombre}' es un método de instancia: crea un objeto con {obj.nombre}(...) "
+                                     "o declara el método como 'estatico'", nodo.linea, nodo.columna)
+            raise ErrorEjecucion(f"La clase {obj.nombre} no tiene la constante ni el método estático '{nombre}'."
+                                 f"{sugerir(nombre, obj.nombres_de_clase())}", nodo.linea, nodo.columna)
         if isinstance(obj, dict) and nombre in obj:
             return obj[nombre]
         metodos = self._metodos_de(obj, nodo)
@@ -587,6 +674,12 @@ class Interprete:
         return None
 
     def ejecutar_para(self, s, var, coleccion, cuerpo, env):
+        if isinstance(coleccion, InstanciaCoral):
+            # Objetos recorribles: definen elementos() y devuelven una lista.
+            if not coleccion.clase.buscar_metodo("elementos"):
+                raise ErrorEjecucion(f"Para recorrer un {coleccion.clase.nombre}, la clase debe definir elementos()",
+                                     s.linea, s.columna)
+            coleccion = self._metodo_especial(coleccion, "elementos", nodo=s)
         if isinstance(coleccion, dict):
             coleccion = list(coleccion)
         if not isinstance(coleccion, (list, str)):
@@ -608,7 +701,13 @@ class Interprete:
             if not isinstance(padre, ClaseCoral):
                 raise ErrorEjecucion(f"Solo se puede heredar de una clase, y '{s.padre.nombre}' es {tipo_de(padre)}",
                                      s.padre.linea, s.padre.columna)
-        return ClaseCoral(s.nombre, padre, {m.nombre: FuncionCoral(m, env) for m in s.metodos})
+        return ClaseCoral(
+            s.nombre, padre,
+            metodos={m.nombre: FuncionCoral(m, env) for m in s.metodos},
+            estaticos={m.nombre: FuncionCoral(m, env) for m in s.estaticos},
+            constantes={n: self.evaluar(v, env) for n, v in s.constantes},
+            abstractos=set(s.abstractos),
+        )
 
     def ejecutar_intenta(self, cuerpo, variable, manejo, env):
         try:
@@ -706,12 +805,23 @@ class Interprete:
             case A.Indice(obj, idx):
                 return self.leer_indice(self.evaluar(obj, env), self.evaluar(idx, env), e)
             case A.Atributo(obj, nombre):
-                return self.atributo(self.evaluar(obj, env), nombre, e)
+                o = self.evaluar(obj, env)
+                return self.atributo(o, nombre, e, desde_yo=self.acceso_interno(obj, o, env))
             case A.Padre(nombre):
                 return self.metodo_padre(nombre, env, e)
             case A.Llamada(fn, args):
                 return self.llamar(self.evaluar(fn, env), [self.evaluar(a, env) for a in args], e)
         raise ErrorEjecucion(f"Nodo desconocido {type(e).__name__}", e.linea, e.columna)
+
+    @staticmethod
+    def acceso_interno(nodo, obj, env) -> bool:
+        """¿Se puede tocar lo privado de obj? Sí con yo._x, o desde un método de su misma clase
+        (por ejemplo otro._saldo dentro de Cuenta.igual_a)."""
+        if isinstance(nodo, A.Variable) and nodo.nombre == "yo":
+            return True
+        clase_env = env.buscar("__clase__")
+        return (clase_env is not None and isinstance(obj, InstanciaCoral)
+                and obj.clase.hereda_de(clase_env.vars["__clase__"]))
 
     def metodo_padre(self, nombre, env, nodo):
         clase_env = env.buscar("__clase__")
@@ -735,10 +845,14 @@ class Interprete:
             return valor
         if isinstance(objetivo, A.Atributo):
             obj = self.evaluar(objetivo.objeto, env)
+            desde_yo = self.acceso_interno(objetivo.objeto, obj, env)
             if op != "=":
-                valor = self.operar(op[0], self.atributo(obj, objetivo.nombre, nodo), valor, nodo)
+                valor = self.operar(op[0], self.atributo(obj, objetivo.nombre, nodo, desde_yo), valor, nodo)
             if isinstance(obj, InstanciaCoral):
+                self.verificar_privado(obj, objetivo.nombre, desde_yo, nodo)
                 obj.campos[objetivo.nombre] = valor
+            elif isinstance(obj, ClaseCoral):
+                raise ErrorEjecucion(f"Los miembros de la clase {obj.nombre} no se pueden reasignar", nodo.linea, nodo.columna)
             elif isinstance(obj, dict):
                 obj[objetivo.nombre] = valor
             else:
@@ -783,7 +897,37 @@ class Interprete:
             if not es_numero(v):
                 raise ErrorEjecucion(f"Se esperaba un número y se recibió {tipo_de(v)}", nodo.linea, nodo.columna)
 
+    def operar_objeto(self, op, a, b, nodo):
+        """Sobrecarga de operadores para instancias. Devuelve (aplicado, resultado)."""
+        def metodo(nombre):
+            encontrado = a.clase.buscar_metodo(nombre)
+            return MetodoLigado(encontrado[0], a, encontrado[1]) if encontrado else None
+
+        if op in OPERADORES_OBJETO:
+            m = metodo(OPERADORES_OBJETO[op])
+            return (True, self.llamar(m, [b], nodo)) if m else (False, None)
+        igual = metodo("igual_a")
+        es_igual = (lambda: verdadero(self.llamar(igual, [b], nodo))) if igual else (lambda: a is b)
+        if op == "==":
+            return True, es_igual()
+        if op == "!=":
+            return True, not es_igual()
+        menor = metodo("menor_que")
+        if op in ("<", "<=", ">", ">=") and menor:
+            es_menor = verdadero(self.llamar(menor, [b], nodo))
+            return True, {"<": es_menor, "<=": es_menor or es_igual(),
+                          ">": not es_menor and not es_igual(), ">=": not es_menor}[op]
+        return False, None
+
     def operar(self, op, a, b, nodo):
+        if isinstance(a, InstanciaCoral) and op not in ("es", ".."):
+            aplicado, resultado = self.operar_objeto(op, a, b, nodo)
+            if aplicado:
+                return resultado
+            if op in OPERADORES_OBJETO or op in ("<", "<=", ">", ">="):
+                metodo = OPERADORES_OBJETO.get(op, "menor_que")
+                raise ErrorEjecucion(f"{a.clase.nombre} no admite '{op}': define el método {metodo}(valor) en la clase",
+                                     nodo.linea, nodo.columna)
         if op == "==":
             return iguales(a, b)
         if op == "!=":
@@ -883,6 +1027,11 @@ class Interprete:
         return texto
 
     def instanciar(self, clase: ClaseCoral, args, nodo) -> InstanciaCoral:
+        pendientes = clase.abstractos_pendientes()
+        if pendientes:
+            nombres = ", ".join(f"'{n}'" for n in pendientes)
+            raise ErrorEjecucion(f"No se puede crear un {clase.nombre}: es abstracta y le falta implementar {nombres}",
+                                 nodo.linea, nodo.columna)
         inst = InstanciaCoral(clase)
         encontrado = clase.buscar_metodo("iniciar")
         if encontrado:

@@ -22,7 +22,7 @@ from .pistas import OPERADORES_INGLES
 PALABRAS_CLAVE = {
     "var", "const", "funcion", "retorna", "si", "sino", "mientras", "para", "en",
     "verdadero", "falso", "nulo", "y", "o", "no", "es", "rompe", "continua",
-    "clase", "hereda", "yo", "padre",
+    "clase", "hereda", "yo", "padre", "estatico", "abstracta",
     "intenta", "captura", "lanza",
     "segun", "caso", "otro",
     "prueba", "afirma", "importa",

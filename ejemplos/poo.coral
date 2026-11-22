@@ -1,0 +1,127 @@
+# Programación orientada a objetos en Coral:
+# abstracción, encapsulamiento, herencia, polimorfismo, miembros de clase,
+# sobrecarga de operadores y objetos recorribles.
+# Ejecuta:  python -m coral ejemplos/poo.coral   ·   pruebas:  python -m coral --pruebas ejemplos/poo.coral
+
+# ---------- Abstracción y polimorfismo ----------
+# Una clase abstracta declara métodos sin cuerpo; no se puede instanciar.
+clase Figura {
+    abstracta funcion area()
+    abstracta funcion nombre()
+
+    funcion describe() => "{yo.nombre()} de área {redondear(yo.area(), 2)}"
+
+    # Comparar figuras por área permite usar <, > y ordenar listas de figuras.
+    funcion menor_que(otra) => yo.area() < otra.area()
+    funcion como_texto() => yo.describe()
+}
+
+clase Circulo hereda Figura {
+    const PI = 3.14159                          # constante de clase: Circulo.PI
+    funcion iniciar(radio) { yo.radio = radio }
+    funcion area() => Circulo.PI * yo.radio ** 2
+    funcion nombre() => "Círculo"
+}
+
+clase Rectangulo hereda Figura {
+    funcion iniciar(ancho, alto) { yo.ancho = ancho; yo.alto = alto }
+    funcion area() => yo.ancho * yo.alto
+    funcion nombre() => "Rectángulo"
+
+    # Método estático: se llama sobre la clase, sin crear un objeto.
+    estatico funcion cuadrado(lado) => Rectangulo(lado, lado)
+}
+
+var figuras = [Circulo(1), Rectangulo(2, 5), Rectangulo.cuadrado(3)]
+para f en ordenar(figuras) {           # ordena con menor_que
+    imprimir("-", f)                    # cada figura responde a su manera (polimorfismo)
+}
+imprimir("¿El círculo es menor que el cuadrado?", figuras[0] < figuras[2])
+
+intenta {
+    Figura()
+} captura e {
+    imprimir("Error esperado:", e)
+}
+
+# ---------- Encapsulamiento ----------
+# Los nombres que empiezan con _ son privados: solo se usan dentro de la clase.
+clase Cuenta {
+    const COMISION = 0.5
+
+    funcion iniciar(titular) {
+        yo.titular = titular
+        yo._saldo = 0                   # privado
+    }
+    funcion deposita(monto) {
+        yo._validar(monto)
+        yo._saldo += monto
+        retorna yo
+    }
+    funcion retira(monto) {
+        yo._validar(monto)
+        si monto + Cuenta.COMISION > yo._saldo { lanza "Saldo insuficiente" }
+        yo._saldo -= monto + Cuenta.COMISION
+        retorna yo
+    }
+    funcion saldo() => yo._saldo        # acceso de solo lectura
+    funcion _validar(monto) {           # método privado
+        si monto <= 0 { lanza "El monto debe ser positivo" }
+    }
+    funcion igual_a(otra) => yo._saldo == otra._saldo   # lo privado se ve entre objetos de la misma clase
+}
+
+var cuenta = Cuenta("Ana").deposita(100).retira(20)
+imprimir(cuenta.titular, "tiene", cuenta.saldo())
+imprimir(cuenta)                        # los campos privados no se muestran
+intenta { imprimir(cuenta._saldo) } captura e { imprimir("Error esperado:", e) }
+
+# ---------- Sobrecarga de operadores ----------
+clase Vector {
+    funcion iniciar(x, z) { yo.x = x; yo.z = z }
+    funcion mas(v) => Vector(yo.x + v.x, yo.z + v.z)
+    funcion menos(v) => Vector(yo.x - v.x, yo.z - v.z)
+    funcion por(k) => Vector(yo.x * k, yo.z * k)
+    funcion igual_a(v) => v es Vector y yo.x == v.x y yo.z == v.z
+    funcion largo() => raiz(yo.x ** 2 + yo.z ** 2)
+    funcion como_texto() => "Vector({yo.x}, {yo.z})"
+}
+
+var a = Vector(3, 4)
+var b = Vector(1, 2)
+imprimir(a + b, a - b, a * 2, a == Vector(3, 4), largo(a))
+
+# ---------- Objetos recorribles ----------
+# Si la clase define elementos(), sus objetos se pueden recorrer con 'para'.
+clase Inventario {
+    funcion iniciar() { yo._productos = [] }
+    funcion agrega(nombre, cantidad) {
+        yo._productos.agrega({nombre: nombre, cantidad: cantidad})
+        retorna yo
+    }
+    funcion elementos() => yo._productos.filtra(funcion (p) => p.cantidad > 0)
+    funcion largo() => largo(yo.elementos())
+}
+
+var bodega = Inventario().agrega("café", 12).agrega("té", 0).agrega("cacao", 5)
+para p en bodega {
+    imprimir("{p.nombre}: {p.cantidad}")
+}
+imprimir("Productos con stock:", largo(bodega))
+
+prueba "polimorfismo y abstracción" {
+    afirma Rectangulo(2, 3).area() == 6
+    afirma Rectangulo.cuadrado(2) es Figura
+    afirma Circulo(1) < Rectangulo(1, 4)
+}
+
+prueba "encapsulamiento" {
+    var c = Cuenta("Luis").deposita(10)
+    afirma c.saldo() == 10
+    afirma c == Cuenta("Eva").deposita(10)
+}
+
+prueba "operadores" {
+    afirma Vector(1, 1) + Vector(2, 3) == Vector(3, 4)
+    afirma largo(Vector(3, 4)) == 5
+}

@@ -192,18 +192,34 @@ class Parser:
             ptok = self.espera("NOMBRE", mensaje="Se esperaba el nombre de la clase padre después de 'hereda'")
             padre = A.Variable(ptok.valor, **self.en(ptok))
         self.espera("SIMBOLO", "{")
-        metodos = []
+        clase = A.Clase(nombre, padre, [], **self.en(tok))
         while not self.ver("SIMBOLO", "}"):
             mtok = self.actual
-            if not mtok.es("CLAVE", "funcion") or self.siguiente().tipo != "NOMBRE":
-                raise ErrorSintaxis("Dentro de una clase solo van métodos:  funcion nombre(...) { ... }", mtok.linea, mtok.columna)
+            if self.acepta("CLAVE", "const"):                       # constante de clase: Clase.NOMBRE
+                cnombre = self.espera("NOMBRE", mensaje="Se esperaba un nombre después de 'const'").valor
+                self.espera("SIMBOLO", "=", mensaje=f"Falta '=' para dar un valor a '{cnombre}'")
+                clase.constantes.append((cnombre, self.expresion()))
+                self.fin_sentencia()
+                continue
+            estatico = bool(self.acepta("CLAVE", "estatico"))
+            abstracto = not estatico and bool(self.acepta("CLAVE", "abstracta"))
+            ftok = self.actual
+            if not ftok.es("CLAVE", "funcion") or self.siguiente().tipo != "NOMBRE":
+                raise ErrorSintaxis("Dentro de una clase solo van métodos (funcion, estatico funcion, abstracta funcion) "
+                                    "y constantes (const)", ftok.linea, ftok.columna)
             self.avanzar()
             mnombre = self.avanzar().valor
-            params, cuerpo = self.parametros_y_cuerpo()
-            metodos.append(A.Funcion(mnombre, params, cuerpo, **self.en(mtok)))
+            if abstracto:
+                # Un método abstracto no tiene cuerpo: las subclases deben implementarlo.
+                self.parametros()
+                clase.abstractos.append(mnombre)
+            else:
+                params, cuerpo = self.parametros_y_cuerpo()
+                funcion = A.Funcion(mnombre, params, cuerpo, **self.en(mtok))
+                (clase.estaticos if estatico else clase.metodos).append(funcion)
             self.fin_sentencia()
         self.avanzar()
-        return A.Clase(nombre, padre, metodos, **self.en(tok))
+        return clase
 
     def _s_intenta(self) -> A.Intenta:
         tok = self.avanzar()
@@ -258,6 +274,14 @@ class Parser:
         return A.Importa(ruta, **self.en(tok))
 
     def parametros_y_cuerpo(self) -> tuple[list[str], list[A.Nodo]]:
+        params = self.parametros()
+        if self.acepta("SIMBOLO", "=>"):            # forma corta: funcion (x) => x * 2
+            tok = self.actual
+            return params, [A.Retorna(self.expresion(), **self.en(tok))]
+        return params, self.bloque()
+
+    def parametros(self) -> list[str]:
+        """Lee '(a, b, c)' y devuelve los nombres."""
         self.espera("SIMBOLO", "(")
         params = []
         if not self.ver("SIMBOLO", ")"):
@@ -269,10 +293,7 @@ class Parser:
                 if not self.acepta("SIMBOLO", ","):
                     break
         self.espera("SIMBOLO", ")")
-        if self.acepta("SIMBOLO", "=>"):            # forma corta: funcion (x) => x * 2
-            tok = self.actual
-            return params, [A.Retorna(self.expresion(), **self.en(tok))]
-        return params, self.bloque()
+        return params
 
     # =================================================================
     # Expresiones (Pratt)

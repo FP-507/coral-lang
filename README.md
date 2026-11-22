@@ -1,6 +1,6 @@
 # Coral · un lenguaje de programación en español
 
-Coral es un lenguaje dinámico con palabras clave en español, **escrito desde cero en Python sin dependencias**: analizador léxico, parser Pratt, árbol de sintaxis e intérprete con clausuras, clases, excepciones y un sistema de pruebas propio.
+Coral es un lenguaje dinámico con palabras clave en español, **escrito desde cero en Python sin dependencias**: analizador léxico, parser Pratt, árbol de sintaxis e intérprete con clausuras, programación orientada a objetos completa, excepciones y un sistema de pruebas propio.
 
 **[Pruébalo en el navegador →](https://fp-507.github.io/coral-lang/playground/)** (corre con WebAssembly gracias a Pyodide)
 
@@ -29,7 +29,7 @@ prueba "solo quedan los caros" {
 
 ## ¿Qué hace diferente a Coral?
 
-No intenta ser "Python traducido". Está pensado para **aprender a programar en español** y tiene cuatro cosas que pocos lenguajes juntan:
+No intenta ser "Python traducido". Está pensado para **aprender a programar en español** y tiene cinco cosas que pocos lenguajes juntan:
 
 1. **Errores que enseñan.** Cada error dice la línea y la columna, muestra el código con una flecha y, cuando puede, explica qué hacer:
    ```
@@ -40,7 +40,8 @@ No intenta ser "Python traducido". Está pensado para **aprender a programar en 
    Reconoce las palabras de Python y JavaScript (`if`, `while`, `def`, `self`, `&&`, `||`, `True`...) y sugiere el nombre correcto ante errores de tipeo: `imprmir(1)` → *¿Quisiste decir 'imprimir'?*
 2. **Pruebas integradas en el lenguaje.** `prueba "nombre" { afirma ... }` vive junto al código; `python -m coral --pruebas archivo.coral` las corre y explica cada fallo (*se esperaba 4 == 5*). No hace falta ninguna biblioteca.
 3. **Tuberías `|>`.** Los datos se leen de izquierda a derecha: `datos |> limpiar |> ordenar |> tomar(3)` en vez de `tomar(ordenar(limpiar(datos)), 3)`.
-4. **Plantillas y rangos legibles.** `"Hola {nombre}, tienes {edad + 1}"`, `para i en 1..10`, `caso 7..9 { ... }`.
+4. **POO completa y en español.** Clases abstractas, encapsulamiento real (`_saldo` no se puede tocar desde afuera), métodos estáticos, herencia con `padre` y sobrecarga de operadores con nombres legibles: `a + b` llama a `a.mas(b)`.
+5. **Plantillas y rangos legibles.** `"Hola {nombre}, tienes {edad + 1}"`, `para i en 1..10`, `caso 7..9 { ... }`.
 
 ## Características
 
@@ -50,7 +51,7 @@ No intenta ser "Python traducido". Está pensado para **aprender a programar en 
 | Variables | `var`, `const` (no se reasigna), ámbitos de bloque |
 | Control | `si`/`sino si`/`sino`, `mientras`, `para x en ...`, `rompe`, `continua`, `segun`/`caso`/`otro` |
 | Funciones | de primera clase, anónimas, forma corta `funcion (x) => x * 2`, clausuras, tuberías `\|>` |
-| Clases | `clase`, `hereda`, `yo`, `padre.metodo()`, constructor `iniciar`, `como_texto()`, operador `es` |
+| POO | `clase`, `hereda`, `yo`, `padre.metodo()`, constructor `iniciar`, clases y métodos `abstracta`, métodos `estatico`, constantes de clase, campos y métodos privados (`_nombre`), sobrecarga de operadores (`mas`, `igual_a`, `menor_que`...), objetos recorribles (`elementos()`), `como_texto()` y operador `es` |
 | Errores | `intenta`/`captura`/`lanza` (se puede lanzar cualquier valor) |
 | Pruebas | `prueba`, `afirma` con explicación del fallo, `--pruebas` con código de salida para CI |
 | Módulos | `importa "util.coral"` (ruta relativa, se carga una sola vez) |
@@ -93,6 +94,7 @@ pip install -e . && coral programa.coral         # como comando
 | [`algoritmos.coral`](ejemplos/algoritmos.coral) | Fibonacci, quicksort, criba de primos |
 | [`clausuras.coral`](ejemplos/clausuras.coral) | Contadores, composición de funciones |
 | [`clases.coral`](ejemplos/clases.coral) | Cuenta bancaria con herencia, `padre`, `como_texto` y errores |
+| [`poo.coral`](ejemplos/poo.coral) | Los cuatro pilares de la POO: figuras abstractas, encapsulamiento, estáticos, operadores y objetos recorribles |
 | [`errores.coral`](ejemplos/errores.coral) | `intenta`/`captura`/`lanza` con valores y diccionarios |
 | [`tuberias.coral`](ejemplos/tuberias.coral) | `\|>`, rangos, `segun` y plantillas |
 | [`pruebas.coral`](ejemplos/pruebas.coral) | Bloques `prueba` y `afirma` |
@@ -105,7 +107,7 @@ pip install pytest
 pytest -q
 ```
 
-57 tests cubren el lexer, la precedencia del parser, la semántica del intérprete, clases y herencia, excepciones, pruebas integradas, módulos, las pistas para quien viene de otro lenguaje, más de 20 tipos de errores y que todos los ejemplos corran con sus pruebas en verde. La CI los corre en Python 3.10 y 3.13.
+64 tests cubren el lexer, la precedencia del parser, la semántica del intérprete, la POO (abstractas, privados, estáticos, operadores), excepciones, pruebas integradas, módulos, las pistas para quien viene de otro lenguaje, más de 20 tipos de errores y que todos los ejemplos corran con sus pruebas en verde. La CI los corre en Python 3.10 y 3.13.
 
 ## Estructura
 
