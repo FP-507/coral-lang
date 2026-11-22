@@ -1,0 +1,30 @@
+# Funciones de primera clase y clausuras.
+
+funcion contador() {
+  var n = 0
+  retorna funcion () {
+    n += 1
+    retorna n
+  }
+}
+
+var c1 = contador()
+var c2 = contador()
+c1(); c1()
+imprimir("c1 va en", c1(), "y c2 en", c2())
+
+funcion componer(f, g) => funcion (x) => f(g(x))
+var doble = funcion (x) => x * 2
+var mas_uno = funcion (x) => x + 1
+imprimir("doble(mas_uno(5)) =", componer(doble, mas_uno)(5))
+
+# Diccionarios: inventario de una tienda
+var inventario = {cafe: 12, arroz: 40, aceite: 0}
+inventario["azucar"] = 25
+para producto en inventario {
+  var estado = "agotado"
+  si inventario[producto] > 0 { estado = texto(inventario[producto]) + " unidades" }
+  imprimir(producto, "→", estado)
+}
+var total = suma(inventario.valores())
+imprimir("Total en bodega:", total)

@@ -1,0 +1,38 @@
+# Algoritmos clásicos escritos en Coral.
+
+funcion fibonacci(n) {
+  si n < 2 { retorna n }
+  retorna fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+funcion quicksort(lista) {
+  si largo(lista) <= 1 { retorna lista }
+  var pivote = lista[0]
+  var resto = []
+  para i en rango(1, largo(lista)) { resto.agrega(lista[i]) }
+  var menores = resto.filtra(funcion (x) => x < pivote)
+  var mayores = resto.filtra(funcion (x) => x >= pivote)
+  retorna quicksort(menores) + [pivote] + quicksort(mayores)
+}
+
+funcion es_primo(n) {
+  si n < 2 { retorna falso }
+  var d = 2
+  mientras d * d <= n {
+    si n % d == 0 { retorna falso }
+    d += 1
+  }
+  retorna verdadero
+}
+
+imprimir("Fibonacci:", rango(10).mapea(fibonacci))
+imprimir("Ordenado:", quicksort([38, 4, 91, 15, 4, 62, 7, 23]))
+imprimir("Primos hasta 50:", rango(50).filtra(es_primo))
+
+# FizzBuzz con sino si
+para n en rango(1, 16) {
+  si n % 15 == 0 { imprimir("FizzBuzz") }
+  sino si n % 3 == 0 { imprimir("Fizz") }
+  sino si n % 5 == 0 { imprimir("Buzz") }
+  sino { imprimir(n) }
+}

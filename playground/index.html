@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coral · Playground</title>
+  <meta name="description" content="Prueba Coral, un lenguaje de programación con palabras clave en español, directamente en el navegador.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1418; --panel: #151c22; --panel-2: #1b242c; --line: #26323c;
+      --ink: #e6ede9; --ink-2: #9fb0aa; --muted: #66767a;
+      --coral: #ff7a59; --coral-2: #ffb199; --sea: #4fd1c5; --err: #ff6b6b;
+      color-scheme: dark;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:where(:not([data-theme="dark"])) {
+        --bg: #f6f3ee; --panel: #fffdf9; --panel-2: #f1ece4; --line: #e3dbcf;
+        --ink: #1d2427; --ink-2: #4d5a5e; --muted: #8a9396;
+        --coral: #e2552f; --coral-2: #b8391a; --sea: #0f8f84; --err: #c62828;
+        color-scheme: light;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.55 "JetBrains Mono", ui-monospace, monospace; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 16px 40px; }
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 20px; }
+    h1 { margin: 0; font: 600 44px/1 Fraunces, Georgia, serif; letter-spacing: -0.02em; }
+    h1 span { color: var(--coral); }
+    .tag { margin: 6px 0 0; color: var(--ink-2); max-width: 60ch; }
+    .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    select, button {
+      font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line);
+      border-radius: 10px; padding: 9px 14px; cursor: pointer;
+    }
+    button.run { background: var(--coral); border-color: var(--coral); color: #1a0d08; font-weight: 700; }
+    button.run:disabled { opacity: .5; cursor: progress; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; }
+    .grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 12px; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; min-height: 460px; }
+    .panel h2 { margin: 0; padding: 10px 14px; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; }
+    .editor { display: grid; grid-template-columns: auto 1fr; flex: 1; }
+    .lineas { padding: 14px 10px 14px 14px; color: var(--muted); text-align: right; user-select: none; background: var(--panel-2); white-space: pre; }
+    textarea { resize: none; border: 0; background: transparent; color: var(--ink); font: inherit; padding: 14px; width: 100%; min-height: 420px; tab-size: 2; white-space: pre; overflow: auto; }
+    pre#salida { margin: 0; padding: 14px; flex: 1; white-space: pre-wrap; overflow: auto; }
+    .ok { color: var(--ink); } .err { color: var(--err); } .info { color: var(--muted); }
+    .ref { margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .ref div { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+    .ref b { color: var(--sea); font-weight: 500; }
+    .ref code { color: var(--coral-2); }
+    footer { margin-top: 20px; color: var(--muted); font-size: 12px; }
+    footer a { color: var(--ink-2); }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .panel { min-height: 300px; } textarea { min-height: 300px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1><span>Coral</span> playground</h1>
+        <p class="tag">Un lenguaje de programación con palabras clave en español: lexer, parser e intérprete escritos desde cero en Python, ejecutándose aquí con WebAssembly.</p>
+      </div>
+      <div class="bar">
+        <label for="ejemplo" class="info">Ejemplo</label>
+        <select id="ejemplo"></select>
+        <button class="run" id="ejecutar" disabled>Cargando…</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="panel" aria-label="Editor">
+        <h2><span>programa.coral</span><span>Ctrl + Enter para ejecutar</span></h2>
+        <div class="editor">
+          <div class="lineas" id="lineas" aria-hidden="true">1</div>
+          <textarea id="codigo" spellcheck="false" aria-label="Código Coral"></textarea>
+        </div>
+      </section>
+      <section class="panel" aria-label="Salida">
+        <h2><span>Salida</span><span id="tiempo"></span></h2>
+        <pre id="salida" aria-live="polite"><span class="info">Cargando el intérprete (la primera vez tarda unos segundos)…</span></pre>
+      </section>
+    </div>
+
+    <div class="ref" aria-label="Referencia rápida">
+      <div><b>Variables</b><br><code>var nombre = "Ana"</code><br><code>x += 1</code></div>
+      <div><b>Condiciones</b><br><code>si x > 0 { … } sino si … { … } sino { … }</code></div>
+      <div><b>Ciclos</b><br><code>para i en rango(5) { … }</code><br><code>mientras cond { rompe }</code></div>
+      <div><b>Funciones</b><br><code>funcion suma(a, b) { retorna a + b }</code><br><code>funcion (x) => x * 2</code></div>
+      <div><b>Colecciones</b><br><code>[1, 2].mapea(f)</code> · <code>{clave: valor}</code><br><code>lista.agrega(x)</code> · <code>d.claves()</code></div>
+    </div>
+
+    <footer>Proyecto de <a href="https://fp-507.github.io/Portafolio/">Fidel Pizart</a> · <a href="https://github.com/FP-507/coral-lang">Código fuente en GitHub</a> · Ejecutado con Pyodide</footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+  <script src="playground.js"></script>
+</body>
+</html>
