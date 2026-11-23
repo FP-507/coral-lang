@@ -6,6 +6,10 @@ Coral es un lenguaje dinámico con palabras clave en español, **escrito desde c
 
 ![tests](https://github.com/FP-507/coral-lang/actions/workflows/tests.yml/badge.svg)
 
+![Playground de Coral: ejecuta el ejemplo de POO, corre sus pruebas y muestra un error que sugiere la palabra correcta](media/demo.gif)
+
+*El playground en el navegador: el ejemplo de POO, sus pruebas integradas y un error que señala la columna y sugiere «nombre».*
+
 ```coral
 clase Producto {
     funcion iniciar(nombre, precio) {
